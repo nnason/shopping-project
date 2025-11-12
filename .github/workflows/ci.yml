@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Typecheck
+        run: npx --no-install tsc --noEmit
+
+      - name: Build
+        env:
+          SKIMLINKS_PRODUCT_API_KEY: ${{ secrets.SKIMLINKS_PRODUCT_API_KEY }}
+          RAKUTEN_CLIENT_ID: ${{ secrets.RAKUTEN_CLIENT_ID }}
+          RAKUTEN_CLIENT_SECRET: ${{ secrets.RAKUTEN_CLIENT_SECRET }}
+          AMAZON_PAAPI_ACCESS_KEY: ${{ secrets.AMAZON_PAAPI_ACCESS_KEY }}
+          AMAZON_PAAPI_SECRET_KEY: ${{ secrets.AMAZON_PAAPI_SECRET_KEY }}
+          AMAZON_PAAPI_PARTNER_TAG: ${{ secrets.AMAZON_PAAPI_PARTNER_TAG }}
+          AMAZON_PAAPI_REGION: ${{ vars.AMAZON_PAAPI_REGION || 'us-east-1' }}
+          AMAZON_PAAPI_HOST: ${{ vars.AMAZON_PAAPI_HOST || 'webservices.amazon.com' }}
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: .next
